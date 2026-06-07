@@ -13,7 +13,7 @@ function Login({ onLogin }) {
       )
       localStorage.setItem("token", res.data.access_token)
       localStorage.setItem("username", res.data.username)
-      onLogin(res.data.username)
+      onLogin(res.data.access_token)
     } catch (err) {
       setError("Invalid email or password")
     }
