@@ -7,7 +7,8 @@ import {
   LogOut,
   Menu,
   X,
-  BarChart2
+  BarChart2,
+  BoxIcon
 } from "lucide-react"
 import { useState } from "react"
 
@@ -18,6 +19,7 @@ const navItems = [
   { icon: BrainCircuit, label: "Training", path: "/training" },
   { icon: Rocket, label: "Deploy", path: "/deploy" },
   { icon: BarChart2, label: "Evaluation", path: "/evaluation" },
+  { icon: BoxIcon, label: "Models", path: "/models" },
 ]
 
 function Layout({ children, onLogout }) {

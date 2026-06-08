@@ -40,3 +40,4 @@ class TrainingJob(Base):
     epochs = Column(Integer, default=10)
     created_at = Column(DateTime, server_default=func.now())
     model_path = Column(String, nullable=True)
+    version = Column(String, nullable=True, default="v1")
