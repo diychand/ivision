@@ -5,6 +5,7 @@ from routers import router
 from routers.auth import router as auth_router
 from routers.datasets import router as datasets_router
 from routers.training import router as training_router
+from routers.evaluation import router as evaluation_router
 
 
 app = FastAPI()
@@ -22,6 +23,7 @@ app.include_router(router)
 app.include_router(auth_router)
 app.include_router(datasets_router)
 app.include_router(training_router)
+app.include_router(evaluation_router)
 
 @app.get("/")
 def home():

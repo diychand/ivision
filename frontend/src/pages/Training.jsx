@@ -1,10 +1,13 @@
 import { useState, useEffect } from "react"
 import axios from "axios"
 import Layout from "../components/Layout"
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts"
 
 function Training({ onLogout }) {
   const [jobs, setJobs] = useState([])
   const [datasets, setDatasets] = useState([])
+  const [selectedJob, setSelectedJob] = useState(null)
+  const [chartData, setChartData] = useState([])
   const [form, setForm] = useState({
     name: "",
     dataset_id: "",
@@ -16,9 +19,28 @@ function Training({ onLogout }) {
   useEffect(() => {
     fetchJobs()
     fetchDatasets()
-    const interval = setInterval(fetchJobs, 3000)
+    const interval = setInterval(fetchJobs, 2000)
     return () => clearInterval(interval)
   }, [])
+
+  useEffect(() => {
+    if (selectedJob) {
+      const job = jobs.find(j => j.id === selectedJob.id)
+      if (job && job.accuracy) {
+        setChartData(prev => {
+          const exists = prev.find(p => p.accuracy === job.accuracy)
+          if (!exists) {
+            return [...prev, {
+              epoch: prev.length + 1,
+              accuracy: parseFloat((job.accuracy * 100).toFixed(2)),
+              loss: parseFloat(job.loss?.toFixed(4) || 0)
+            }]
+          }
+          return prev
+        })
+      }
+    }
+  }, [jobs, selectedJob])
 
   const fetchJobs = async () => {
     const res = await axios.get("http://127.0.0.1:8000/training/jobs")
@@ -32,10 +54,12 @@ function Training({ onLogout }) {
 
   const startTraining = async () => {
     try {
-      await axios.post(
+      const res = await axios.post(
         `http://127.0.0.1:8000/training/start?name=${form.name}&dataset_id=${form.dataset_id}&model_type=${form.model_type}&epochs=${form.epochs}`
       )
       setMessage("Training started!")
+      setSelectedJob(res.data)
+      setChartData([])
       fetchJobs()
     } catch (err) {
       setMessage("Failed to start training.")
@@ -45,6 +69,7 @@ function Training({ onLogout }) {
   const getStatusColor = (status) => {
     if (status === "completed") return "#10b981"
     if (status === "training") return "#6366f1"
+    if (status === "failed") return "#ef4444"
     return "#f59e0b"
   }
 
@@ -71,20 +96,16 @@ function Training({ onLogout }) {
           </h2>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "16px" }}>
             <div>
-              <label style={{ fontSize: "13px", color: "#64748b", display: "block", marginBottom: "6px" }}>
-                Job Name
-              </label>
+              <label style={{ fontSize: "13px", color: "#64748b", display: "block", marginBottom: "6px" }}>Job Name</label>
               <input
                 value={form.name}
                 onChange={e => setForm({ ...form, name: e.target.value })}
-                placeholder="e.g. Image Classifier v1"
+                placeholder="e.g. Iris Classifier v1"
                 style={{ width: "100%", padding: "8px 12px", borderRadius: "8px", border: "1px solid #e2e8f0", fontSize: "14px" }}
               />
             </div>
             <div>
-              <label style={{ fontSize: "13px", color: "#64748b", display: "block", marginBottom: "6px" }}>
-                Dataset
-              </label>
+              <label style={{ fontSize: "13px", color: "#64748b", display: "block", marginBottom: "6px" }}>Dataset</label>
               <select
                 value={form.dataset_id}
                 onChange={e => setForm({ ...form, dataset_id: e.target.value })}
@@ -97,9 +118,7 @@ function Training({ onLogout }) {
               </select>
             </div>
             <div>
-              <label style={{ fontSize: "13px", color: "#64748b", display: "block", marginBottom: "6px" }}>
-                Model Type
-              </label>
+              <label style={{ fontSize: "13px", color: "#64748b", display: "block", marginBottom: "6px" }}>Model Type</label>
               <select
                 value={form.model_type}
                 onChange={e => setForm({ ...form, model_type: e.target.value })}
@@ -111,9 +130,7 @@ function Training({ onLogout }) {
               </select>
             </div>
             <div>
-              <label style={{ fontSize: "13px", color: "#64748b", display: "block", marginBottom: "6px" }}>
-                Epochs
-              </label>
+              <label style={{ fontSize: "13px", color: "#64748b", display: "block", marginBottom: "6px" }}>Epochs</label>
               <input
                 type="number"
                 value={form.epochs}
@@ -137,10 +154,35 @@ function Training({ onLogout }) {
           >
             Start Training
           </button>
-          {message && (
-            <span style={{ marginLeft: "16px", color: "#10b981", fontSize: "14px" }}>{message}</span>
-          )}
+          {message && <span style={{ marginLeft: "16px", color: "#10b981", fontSize: "14px" }}>{message}</span>}
         </div>
+
+        {/* Live Chart */}
+        {selectedJob && chartData.length > 0 && (
+          <div style={{
+            background: "white",
+            borderRadius: "12px",
+            padding: "24px",
+            boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+            marginBottom: "24px"
+          }}>
+            <h2 style={{ fontSize: "16px", fontWeight: "600", marginBottom: "20px", color: "#0f172a" }}>
+              Live Metrics — {selectedJob.name}
+            </h2>
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                <XAxis dataKey="epoch" label={{ value: "Epoch", position: "insideBottom", offset: -5 }} />
+                <YAxis yAxisId="left" domain={[0, 100]} label={{ value: "Accuracy %", angle: -90, position: "insideLeft" }} />
+                <YAxis yAxisId="right" orientation="right" label={{ value: "Loss", angle: 90, position: "insideRight" }} />
+                <Tooltip />
+                <Legend />
+                <Line yAxisId="left" type="monotone" dataKey="accuracy" stroke="#6366f1" strokeWidth={2} dot={false} name="Accuracy %" />
+                <Line yAxisId="right" type="monotone" dataKey="loss" stroke="#ef4444" strokeWidth={2} dot={false} name="Loss" />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        )}
 
         {/* Jobs Table */}
         <div style={{
@@ -167,6 +209,7 @@ function Training({ onLogout }) {
                   <th style={{ padding: "12px 24px", textAlign: "left", fontSize: "13px", color: "#64748b" }}>Status</th>
                   <th style={{ padding: "12px 24px", textAlign: "left", fontSize: "13px", color: "#64748b" }}>Accuracy</th>
                   <th style={{ padding: "12px 24px", textAlign: "left", fontSize: "13px", color: "#64748b" }}>Loss</th>
+                  <th style={{ padding: "12px 24px", textAlign: "left", fontSize: "13px", color: "#64748b" }}>Details</th>
                 </tr>
               </thead>
               <tbody>
@@ -191,6 +234,22 @@ function Training({ onLogout }) {
                     </td>
                     <td style={{ padding: "16px 24px", fontSize: "14px", color: "#64748b" }}>
                       {job.loss ? job.loss.toFixed(4) : "-"}
+                    </td>
+                    <td style={{ padding: "16px 24px" }}>
+                      <button
+                        onClick={() => { setSelectedJob(job); setChartData([]) }}
+                        style={{
+                          background: "none",
+                          border: "1px solid #e2e8f0",
+                          borderRadius: "6px",
+                          padding: "4px 12px",
+                          cursor: "pointer",
+                          fontSize: "13px",
+                          color: "#6366f1"
+                        }}
+                      >
+                        View
+                      </button>
                     </td>
                   </tr>
                 ))}

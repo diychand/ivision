@@ -6,15 +6,18 @@ import {
   Rocket,
   LogOut,
   Menu,
-  X
+  X,
+  BarChart2
 } from "lucide-react"
 import { useState } from "react"
+
 
 const navItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
   { icon: Database, label: "Datasets", path: "/datasets" },
   { icon: BrainCircuit, label: "Training", path: "/training" },
   { icon: Rocket, label: "Deploy", path: "/deploy" },
+  { icon: BarChart2, label: "Evaluation", path: "/evaluation" },
 ]
 
 function Layout({ children, onLogout }) {
@@ -99,6 +102,7 @@ function Layout({ children, onLogout }) {
                 <Icon size={18} />
                 {!collapsed && <span>{label}</span>}
               </button>
+              
             )
           })}
         </nav>
