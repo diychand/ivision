@@ -3,6 +3,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from database import engine, Base
 from routers import router
 from routers.auth import router as auth_router
+from routers.datasets import router as datasets_router
+
 
 app = FastAPI()
 
@@ -17,6 +19,7 @@ Base.metadata.create_all(bind=engine)
 
 app.include_router(router)
 app.include_router(auth_router)
+app.include_router(datasets_router)
 
 @app.get("/")
 def home():

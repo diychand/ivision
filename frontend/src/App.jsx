@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom"
 import Login from "./pages/Login"
 import Register from "./pages/Register"
 import Dashboard from "./pages/Dashboard"
+import Datasets from "./pages/Datasets"
 
 function App() {
   const [token, setToken] = useState(localStorage.getItem("token"))
@@ -23,14 +24,19 @@ function App() {
       <Routes>
         <Route path="/login" element={
           token ? <Navigate to="/dashboard" /> : <Login onLogin={handleLogin} />
-        }/>
+        } />
         <Route path="/register" element={
           token ? <Navigate to="/dashboard" /> : <Register onRegister={() => {}} />
-        }/>
+        } />
         <Route path="/dashboard" element={
           token ? <Dashboard onLogout={handleLogout} /> : <Navigate to="/login" />
-        }/>
-        <Route path="*" element={<Navigate to={token ? "/dashboard" : "/login"} />}/>
+        } />
+        <Route path="/datasets" element={
+          token ? <Datasets onLogout={handleLogout} /> : <Navigate to="/login" />
+        } />
+        <Route path="*" element={
+          <Navigate to={token ? "/dashboard" : "/login"} />
+        } />
       </Routes>
     </BrowserRouter>
   )
