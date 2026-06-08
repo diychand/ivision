@@ -4,6 +4,7 @@ from database import engine, Base
 from routers import router
 from routers.auth import router as auth_router
 from routers.datasets import router as datasets_router
+from routers.training import router as training_router
 
 
 app = FastAPI()
@@ -20,6 +21,7 @@ Base.metadata.create_all(bind=engine)
 app.include_router(router)
 app.include_router(auth_router)
 app.include_router(datasets_router)
+app.include_router(training_router)
 
 @app.get("/")
 def home():
