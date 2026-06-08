@@ -7,7 +7,7 @@ from utils.ml_engine import train_classification_model
 
 router = APIRouter(prefix="/training")
 
-def run_real_training(job_id: int, file_path: str, epochs: int, model_type: str):
+def run_real_training(job_id: int, file_path: str, epochs: int, model_type: str, engine: str = "csv"):
     db = SessionLocal()
     try:
         job = db.query(TrainingJob).filter(TrainingJob.id == job_id).first()
@@ -21,14 +21,21 @@ def run_real_training(job_id: int, file_path: str, epochs: int, model_type: str)
             j.status = "training"
             db.commit()
 
-        metrics, model_path = train_classification_model(
-            file_path, epochs, job_id, progress_callback
-        )
+        if engine == "image":
+            from utils.cv_engine import train_image_model
+            metrics, model_path = train_image_model(
+                file_path, epochs, job_id, progress_callback
+            )
+        else:
+            from utils.ml_engine import train_classification_model
+            metrics, model_path = train_classification_model(
+                file_path, epochs, job_id, progress_callback
+            )
 
         job = db.query(TrainingJob).filter(TrainingJob.id == job_id).first()
         job.status = "completed"
         job.accuracy = metrics["accuracy"]
-        job.loss = metrics["precision"]
+        job.loss = metrics.get("f1", 0)
         job.model_path = model_path
         db.commit()
 
@@ -39,7 +46,7 @@ def run_real_training(job_id: int, file_path: str, epochs: int, model_type: str)
         db.commit()
     finally:
         db.close()
-
+@router.post("/start")
 @router.post("/start")
 def start_training(
     name: str,
@@ -62,12 +69,25 @@ def start_training(
     db.commit()
     db.refresh(job)
 
-    thread = threading.Thread(
-        target=run_real_training,
-        args=(job.id, dataset.file_path, epochs, model_type)
-    )
-    thread.start()
+    # Choose engine based on file type and model type
+    file_path = dataset.file_path
+    is_image = file_path.endswith(".zip")
 
+    if is_image:
+        from utils.cv_engine import train_image_model
+        thread = threading.Thread(
+            target=run_real_training,
+            args=(job.id, file_path, epochs, model_type),
+            kwargs={"engine": "image"}
+        )
+    else:
+        thread = threading.Thread(
+            target=run_real_training,
+            args=(job.id, file_path, epochs, model_type),
+            kwargs={"engine": "csv"}
+        )
+
+    thread.start()
     return job
 
 @router.get("/jobs")

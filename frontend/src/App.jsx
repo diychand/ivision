@@ -7,6 +7,7 @@ import Datasets from "./pages/Datasets"
 import Training from "./pages/Training"
 import Evaluation from "./pages/Evaluation"
 import Models from "./pages/Models"
+import Export from "./pages/Export"
 function App() {
   const [token, setToken] = useState(localStorage.getItem("token"))
 
@@ -44,6 +45,9 @@ function App() {
         } />
         <Route path="/models" element={
          token ? <Models onLogout={handleLogout} /> : <Navigate to="/login" />
+        } />
+        <Route path="/export" element={
+          token ? <Export onLogout={handleLogout} /> : <Navigate to="/login" />
         } />
         <Route path="*" element={
           <Navigate to={token ? "/dashboard" : "/login"} />

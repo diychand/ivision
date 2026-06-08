@@ -7,6 +7,7 @@ from routers.datasets import router as datasets_router
 from routers.training import router as training_router
 from routers.evaluation import router as evaluation_router
 from routers.models import router as models_router
+from routers.export import router as export_router
 
 
 app = FastAPI()
@@ -26,6 +27,7 @@ app.include_router(datasets_router)
 app.include_router(training_router)
 app.include_router(evaluation_router)
 app.include_router(models_router)
+app.include_router(export_router)
 
 @app.get("/")
 def home():
