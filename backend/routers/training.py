@@ -1,28 +1,44 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from database import get_db
-from models import TrainingJob, Dataset
+from database import get_db, SessionLocal
+from models import TrainingJob
 import threading
-import time
-import random
+from utils.ml_engine import train_classification_model
 
 router = APIRouter(prefix="/training")
 
-def run_training(job_id: int, epochs: int, db: Session):
-    for epoch in range(epochs):
-        time.sleep(1)
-        accuracy = round(random.uniform(0.6, 0.99), 4)
-        loss = round(random.uniform(0.01, 0.4), 4)
+def run_real_training(job_id: int, file_path: str, epochs: int, model_type: str):
+    db = SessionLocal()
+    try:
         job = db.query(TrainingJob).filter(TrainingJob.id == job_id).first()
-        job.accuracy = accuracy
-        job.loss = loss
         job.status = "training"
         db.commit()
-    
-    job = db.query(TrainingJob).filter(TrainingJob.id == job_id).first()
-    job.status = "completed"
-    db.commit()
-    db.close()
+
+        def progress_callback(epoch, total, accuracy, loss):
+            j = db.query(TrainingJob).filter(TrainingJob.id == job_id).first()
+            j.accuracy = accuracy
+            j.loss = loss
+            j.status = "training"
+            db.commit()
+
+        metrics, model_path = train_classification_model(
+            file_path, epochs, job_id, progress_callback
+        )
+
+        job = db.query(TrainingJob).filter(TrainingJob.id == job_id).first()
+        job.status = "completed"
+        job.accuracy = metrics["accuracy"]
+        job.loss = metrics["precision"]
+        job.model_path = model_path
+        db.commit()
+
+    except Exception as e:
+        print(f"Training error: {str(e)}")
+        job = db.query(TrainingJob).filter(TrainingJob.id == job_id).first()
+        job.status = "failed"
+        db.commit()
+    finally:
+        db.close()
 
 @router.post("/start")
 def start_training(
@@ -32,6 +48,9 @@ def start_training(
     epochs: int = 10,
     db: Session = Depends(get_db)
 ):
+    from models import Dataset
+    dataset = db.query(Dataset).filter(Dataset.id == dataset_id).first()
+
     job = TrainingJob(
         name=name,
         dataset_id=dataset_id,
@@ -44,8 +63,8 @@ def start_training(
     db.refresh(job)
 
     thread = threading.Thread(
-        target=run_training,
-        args=(job.id, epochs, db)
+        target=run_real_training,
+        args=(job.id, dataset.file_path, epochs, model_type)
     )
     thread.start()
 
