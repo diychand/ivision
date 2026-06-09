@@ -8,6 +8,7 @@ import Training from "./pages/Training"
 import Evaluation from "./pages/Evaluation"
 import Models from "./pages/Models"
 import Export from "./pages/Export"
+import Labelling from "./pages/Labelling"
 function App() {
   const [token, setToken] = useState(localStorage.getItem("token"))
 
@@ -48,6 +49,9 @@ function App() {
         } />
         <Route path="/export" element={
           token ? <Export onLogout={handleLogout} /> : <Navigate to="/login" />
+        } />
+        <Route path="/labelling" element={
+          token ? <Labelling onLogout={handleLogout} /> : <Navigate to="/login" />
         } />
         <Route path="*" element={
           <Navigate to={token ? "/dashboard" : "/login"} />

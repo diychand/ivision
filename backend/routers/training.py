@@ -3,7 +3,6 @@ from sqlalchemy.orm import Session
 from database import get_db, SessionLocal
 from models import TrainingJob
 import threading
-from utils.ml_engine import train_classification_model
 
 router = APIRouter(prefix="/training")
 
@@ -26,6 +25,11 @@ def run_real_training(job_id: int, file_path: str, epochs: int, model_type: str,
             metrics, model_path = train_image_model(
                 file_path, epochs, job_id, progress_callback
             )
+        elif engine == "nlp":
+            from utils.nlp_engine import train_nlp_model
+            metrics, model_path = train_nlp_model(
+                file_path, epochs, job_id, progress_callback
+            )
         else:
             from utils.ml_engine import train_classification_model
             metrics, model_path = train_classification_model(
@@ -46,7 +50,8 @@ def run_real_training(job_id: int, file_path: str, epochs: int, model_type: str,
         db.commit()
     finally:
         db.close()
-@router.post("/start")
+
+
 @router.post("/start")
 def start_training(
     name: str,
@@ -69,12 +74,17 @@ def start_training(
     db.commit()
     db.refresh(job)
 
-    # Choose engine based on file type and model type
     file_path = dataset.file_path
     is_image = file_path.endswith(".zip")
+    is_nlp = model_type == "nlp"
 
-    if is_image:
-        from utils.cv_engine import train_image_model
+    if is_nlp:
+        thread = threading.Thread(
+            target=run_real_training,
+            args=(job.id, file_path, epochs, model_type),
+            kwargs={"engine": "nlp"}
+        )
+    elif is_image:
         thread = threading.Thread(
             target=run_real_training,
             args=(job.id, file_path, epochs, model_type),
@@ -90,9 +100,11 @@ def start_training(
     thread.start()
     return job
 
+
 @router.get("/jobs")
 def get_jobs(db: Session = Depends(get_db)):
     return db.query(TrainingJob).all()
+
 
 @router.get("/jobs/{job_id}")
 def get_job(job_id: int, db: Session = Depends(get_db)):
