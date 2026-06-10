@@ -1,7 +1,11 @@
 from jose import JWTError, jwt
 from datetime import datetime, timedelta
+from dotenv import load_dotenv
+import os
 
-SECRET_KEY = "ivision-secret-key-2026"
+load_dotenv()
+
+SECRET_KEY = os.getenv("SECRET_KEY", "ivision-secret-key-2026")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 

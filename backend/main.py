@@ -1,3 +1,7 @@
+from dotenv import load_dotenv
+import os
+load_dotenv()
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from database import engine, Base
@@ -9,13 +13,15 @@ from routers.evaluation import router as evaluation_router
 from routers.models import router as models_router
 from routers.export import router as export_router
 from routers.labelling import router as labelling_router
+from routers.image_labelling import router as image_labelling_router
 
+app = FastAPI(title="iVision API", version="1.0.0")
 
-app = FastAPI()
+allowed_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173").split(",")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=allowed_origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -30,10 +36,11 @@ app.include_router(evaluation_router)
 app.include_router(models_router)
 app.include_router(export_router)
 app.include_router(labelling_router)
+app.include_router(image_labelling_router)
 
 @app.get("/")
 def home():
-    return {"message": "iVision API is running!"}
+    return {"message": "iVision API is running!", "version": "1.0.0"}
 
 @app.get("/health")
 def health():

@@ -6,7 +6,7 @@ import threading
 
 router = APIRouter(prefix="/training")
 
-def run_real_training(job_id: int, file_path: str, epochs: int, model_type: str, engine: str = "csv"):
+def run_real_training(job_id: int, file_path: str, epochs: int, model_type: str, engine: str = "csv", dataset_id: int = None):
     db = SessionLocal()
     try:
         job = db.query(TrainingJob).filter(TrainingJob.id == job_id).first()
@@ -30,11 +30,17 @@ def run_real_training(job_id: int, file_path: str, epochs: int, model_type: str,
             metrics, model_path = train_nlp_model(
                 file_path, epochs, job_id, progress_callback
             )
+        elif engine == "yolo":
+            from utils.yolo_engine import train_yolo_model
+            metrics, model_path = train_yolo_model(
+                dataset_id, epochs, job_id, progress_callback
+            )
         else:
             from utils.ml_engine import train_classification_model
             metrics, model_path = train_classification_model(
                 file_path, epochs, job_id, progress_callback
             )
+
 
         job = db.query(TrainingJob).filter(TrainingJob.id == job_id).first()
         job.status = "completed"
@@ -77,8 +83,14 @@ def start_training(
     file_path = dataset.file_path
     is_image = file_path.endswith(".zip")
     is_nlp = model_type == "nlp"
-
-    if is_nlp:
+    is_yolo = model_type in ["object_detection", "detection"] and is_image
+    if is_yolo:
+        thread = threading.Thread(
+            target=run_real_training,
+            args=(job.id, file_path, epochs, model_type),
+            kwargs={"engine": "yolo", "dataset_id": dataset.id}
+        )
+    elif is_nlp:
         thread = threading.Thread(
             target=run_real_training,
             args=(job.id, file_path, epochs, model_type),
@@ -96,7 +108,6 @@ def start_training(
             args=(job.id, file_path, epochs, model_type),
             kwargs={"engine": "csv"}
         )
-
     thread.start()
     return job
 

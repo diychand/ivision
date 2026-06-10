@@ -10,7 +10,8 @@ import {
   BarChart2,
   BoxIcon,
   Download,
-  Tag
+  Tag,
+  ImageIcon
 } from "lucide-react"
 import { useState } from "react"
 
@@ -24,6 +25,7 @@ const navItems = [
   { icon: BoxIcon, label: "Models", path: "/models" },
   { icon: Download, label: "Export", path: "/export" },
   { icon: Tag, label: "Labelling", path: "/labelling" },
+  { icon: ImageIcon, label: "Image Labels", path: "/image-labelling" },
 ]
 
 function Layout({ children, onLogout }) {
